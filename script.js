@@ -32,19 +32,27 @@ function displayProducts(products) {
         );
 
         return `
-    <button
-      type="button"
-      class="product-card${isSelected ? " selected" : ""}"
-      data-product-id="${product.id}"
-      aria-pressed="${isSelected}"
-    >
-      <img src="${product.image}" alt="">
-      <span class="product-info">
-        <span class="product-name">${product.name}</span>
-        <span class="product-brand">${product.brand}</span>
-      </span>
-    </button>
-  `;
+          <article
+            class="product-card${isSelected ? " selected" : ""}"
+            data-product-id="${product.id}"
+          >
+            <button
+              type="button"
+              class="product-select"
+              aria-pressed="${isSelected}"
+            >
+              <img src="${product.image}" alt="">
+              <span class="product-info">
+                <span class="product-name">${product.name}</span>
+                <span class="product-brand">${product.brand}</span>
+              </span>
+            </button>
+            <details class="product-description">
+              <summary>Product description</summary>
+              <p>${product.description}</p>
+            </details>
+          </article>
+        `;
       }
     )
     .join("");
@@ -85,7 +93,9 @@ function updateProductCard(productId, isSelected) {
 
   if (productCard) {
     productCard.classList.toggle("selected", isSelected);
-    productCard.setAttribute("aria-pressed", isSelected);
+    productCard
+      .querySelector(".product-select")
+      .setAttribute("aria-pressed", isSelected);
   }
 }
 
@@ -109,13 +119,13 @@ function setProductSelected(productId, isSelected) {
   displaySelectedProducts();
 }
 
-/* Select or unselect a product by clicking its card */
+/* Select or unselect a product with its selection button */
 productsContainer.addEventListener("click", (e) => {
-  const productCard = e.target.closest(".product-card");
+  const productSelect = e.target.closest(".product-select");
 
-  if (productCard) {
-    const productId = productCard.dataset.productId;
-    const isSelected = productCard.getAttribute("aria-pressed") !== "true";
+  if (productSelect) {
+    const productId = productSelect.closest(".product-card").dataset.productId;
+    const isSelected = productSelect.getAttribute("aria-pressed") !== "true";
     setProductSelected(productId, isSelected);
   }
 });
