@@ -9,12 +9,12 @@ const userInput = document.getElementById("userInput");
 const chatSubmitButton = document.getElementById("sendBtn");
 
 /* Send requests through the class Worker so no API key is exposed in the browser */
-const workerUrl = "https://09-prj-loreal-routine-builder.jasminv206.workers.dev/";
+const workerUrl = "https://09-prj-loreal-routine-builder.jasminv206.workers.dev/api/chat";
 const messages = [
   {
     role: "system",
     content:
-      "You are a helpful L'Oréal beauty advisor. Create safe, clear routines using only the products provided by the user. Explain when and how to use each product.",
+      "You are a helpful L'Oréal beauty advisor. Use the full conversation to answer questions about the generated routine and related skincare, haircare, makeup, fragrance, and beauty topics. Politely redirect unrelated questions. When creating a routine, use only products provided by the user and explain how and when to use them safely.",
   },
 ];
 
@@ -207,20 +207,44 @@ function displayConversation() {
 }
 
 /* Ask the class Worker for a reply using the full conversation */
+
 async function getAdvisorReply() {
   const response = await fetch(workerUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({ messages }),
   });
 
+  // Read the response body
+  const responseText = await response.text();
+
+  // Try to convert the response into JSON
+  let data;
+
+  try {
+    data = JSON.parse(responseText);
+  } catch (error) {
+    data = {
+      error: responseText || "The Worker returned an empty response."
+    };
+  }
+
+  // Show the actual error instead of only the status code
   if (!response.ok) {
+    const errorMessage =
+      data.error?.message ||
+      data.error ||
+      data.message ||
+      "Unknown server error.";
+
     throw new Error(
-      `The Worker returned an error (${response.status}). Check the Worker URL and try again.`
+      `Worker error (${response.status}): ${errorMessage}`
     );
   }
 
-  const data = await response.json();
+  // Get the advisor's reply
   const reply =
     data.choices &&
     data.choices[0] &&
