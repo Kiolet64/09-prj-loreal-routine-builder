@@ -208,7 +208,7 @@ body {
   display: flex;
   align-items: center;
   gap: 15px;
-  text-align: left;
+  text-align: start;
   font: inherit;
   color: inherit;
   background: transparent;
@@ -335,5 +335,5 @@ body {
 }
 
 .generate-btn i {
-  margin-right: 8px;
+  margin-inline-end: 8px;
 }
