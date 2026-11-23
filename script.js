@@ -4,9 +4,13 @@ const productsContainer = document.getElementById("productsContainer");
 const chatForm = document.getElementById("chatForm");
 const chatWindow = document.getElementById("chatWindow");
 const selectedProductsList = document.getElementById("selectedProductsList");
+const selectionStorageStatus = document.getElementById("selectionStorageStatus");
+const clearSelectionsButton = document.getElementById("clearSelections");
 const generateRoutineButton = document.getElementById("generateRoutine");
 const userInput = document.getElementById("userInput");
 const chatSubmitButton = document.getElementById("sendBtn");
+
+const selectedProductsStorageKey = "lorealRoutineBuilderSelectedProductIds";
 
 /* Send requests through the class Worker so no API key is exposed in the browser */
 const workerUrl = "https://09-prj-loreal-routine-builder.jasminv206.workers.dev/api/chat";
@@ -78,6 +82,7 @@ function displayProducts(products) {
 function displaySelectedProducts() {
   generateRoutineButton.disabled =
     selectedProducts.length === 0 || requestInProgress;
+  clearSelectionsButton.disabled = selectedProducts.length === 0;
 
   if (selectedProducts.length === 0) {
     selectedProductsList.innerHTML =
@@ -102,6 +107,47 @@ function displaySelectedProducts() {
       `
     )
     .join("");
+}
+
+/* Save selected product IDs so the selection can be restored after a reload */
+function saveSelectedProducts() {
+  try {
+    const selectedProductIds = selectedProducts.map(
+      (product) => String(product.id)
+    );
+    localStorage.setItem(
+      selectedProductsStorageKey,
+      JSON.stringify(selectedProductIds)
+    );
+    selectionStorageStatus.textContent = "";
+    selectionStorageStatus.hidden = true;
+  } catch (error) {
+    selectionStorageStatus.textContent =
+      "Your selections could not be saved in this browser.";
+    selectionStorageStatus.hidden = false;
+  }
+}
+
+/* Restore saved products after the product catalog has loaded */
+function restoreSelectedProducts() {
+  try {
+    const savedProductIds = JSON.parse(
+      localStorage.getItem(selectedProductsStorageKey) || "[]"
+    );
+
+    if (!Array.isArray(savedProductIds)) {
+      throw new Error("Saved product selections are not a list.");
+    }
+
+    selectedProducts = allProducts.filter((product) =>
+      savedProductIds.includes(String(product.id))
+    );
+  } catch (error) {
+    selectedProducts = [];
+    selectionStorageStatus.textContent =
+      "Your saved selections could not be read from this browser.";
+    selectionStorageStatus.hidden = false;
+  }
 }
 
 /* Keep the visible card in sync when a product is removed from the list */
@@ -135,6 +181,7 @@ function setProductSelected(productId, isSelected) {
   }
 
   updateProductCard(productId, isSelected);
+  saveSelectedProducts();
   displaySelectedProducts();
 }
 
@@ -158,11 +205,33 @@ selectedProductsList.addEventListener("click", (e) => {
   }
 });
 
+/* Remove all selected products at once */
+clearSelectionsButton.addEventListener("click", () => {
+  selectedProducts.forEach((product) => {
+    updateProductCard(String(product.id), false);
+  });
+  selectedProducts = [];
+  saveSelectedProducts();
+  displaySelectedProducts();
+});
+
 displaySelectedProducts();
+
+const productsReady = loadProducts().then((products) => {
+  allProducts = products;
+  restoreSelectedProducts();
+  displaySelectedProducts();
+  return true;
+}).catch((error) => {
+  productsContainer.textContent = `Could not load products: ${error.message}`;
+  return false;
+});
 
 /* Filter and display products when category changes */
 categoryFilter.addEventListener("change", async (e) => {
-  allProducts = await loadProducts();
+  if (!(await productsReady)) {
+    return;
+  }
   const selectedCategory = e.target.value;
 
   /* filter() creates a new array containing only products 
